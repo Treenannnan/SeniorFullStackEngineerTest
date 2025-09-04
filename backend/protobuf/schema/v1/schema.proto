@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package schema.v1;
+
+option go_package = "github.com/backend/gen/schema/v1;schemav1";
+option java_multiple_files = true;
+option java_package = "com.backend.schema.v1";
+option csharp_namespace = "Backend.Schema.V1";
+
+import "google/protobuf/timestamp.proto";
+
+// =======================
+// AUTH RECORDS
+// =======================
+
+enum Provider {
+  PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_CUSTOM = 1; 
+  PROVIDER_GOOGLE = 2; 
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_ADMIN = 2;
+}
+
+enum AIProvider {
+  AIProvider_NONE = 0;
+  AIProvider_AWS = 1;
+  AIProvider_LOCAL = 2;
+}
+
+message UserRecord {
+  string id = 1;                               
+  string email = 2;                     
+  Provider provider = 3;                       
+  bool email_verified = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+
+  bytes password_hash = 7;
+  Role role = 8;  
+}
+
+message RefreshTokenRecord {
+  string token = 1;                             
+  string user_id = 2;                           
+  google.protobuf.Timestamp expires_at = 3;
+  bool revoked = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ResetTokenRecord {
+  string token = 1;                             
+  string user_id = 2;                     
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message UserCreated {
+  string id = 1;
+  string email = 2;
+  Provider provider = 3;
+  bool email_verified = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message UserPasswordChanged {
+  string id = 1;                                
+  google.protobuf.Timestamp changed_at = 2;
+}
+
+message RefreshTokenIssued {
+  string token = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  google.protobuf.Timestamp issued_at = 4;
+}
+
+message RefreshTokenRevoked {
+  string token = 1;
+  string user_id = 2;
+  string reason = 3;                            
+  google.protobuf.Timestamp revoked_at = 4;
+}
+
+// =======================
+// SHOP RECORDS
+// =======================
+
+message AudiobookRecord {
+  string id = 1;
+  string title = 2;
+  string author = 3;
+  int64 duration_seconds = 4;  
+  int64 price_cents = 5;
+  string cover_url = 6;          
+  string audio_path = 7;       
+  string status = 8;             
+  string ai_description = 9;   
+  string transcript = 10;         
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  string content_type = 13;
+  AIProvider ai_provider = 14;
+}
+
+message AudiobookCategoryRecord {
+  string audiobook_id = 1;
+  string category = 2;   
+  int32 idx_pos = 3;   
+}
+
+message CartItemRecord {
+  string user_id = 1;
+  string audiobook_id = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message OrderRecord {
+  int64 id = 1;                  
+  string order_uid = 2;      
+  string user_id = 3;
+  int64 total_cents = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message OrderItemRecord {
+  int64 order_id = 1;            
+  string audiobook_id = 2;    
+  int64 price_cents = 3;
+}
+
+message PurchaseRecord {
+  string user_id = 1;
+  string audiobook_id = 2;
+  int64 price_cents = 3;
+  google.protobuf.Timestamp purchased_at = 4;
+}

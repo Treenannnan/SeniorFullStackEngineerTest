@@ -1,0 +1,92 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: mysql-app
+    environment:
+      MYSQL_ROOT_PASSWORD: "12345"
+      MYSQL_DATABASE: "auth"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/scripts/init-timezone.sh:/docker-entrypoint-initdb.d/init-timezone.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: service-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      BLOB_BIND_ADDR: "0.0.0.0:25213"
+      GRPC_ADDR: "0.0.0.0:50051"
+      BLOB_PUBLIC_BASE_URL: "http://10.0.2.2:25213"
+      MYSQL_DSN: "root:12345@tcp(mysql:3306)/auth?parseTime=true&charset=utf8mb4&loc=UTC"
+      AUTH_JWT_SECRET: "dev-secret"
+      AWS_ACCESS_KEY_ID: "xxxxxxx"
+      AWS_SECRET_ACCESS_KEY: "xxxxxxx"
+      AWS_REGION: "ap-southeast-1"
+      BLOB_STORAGE_PATH: "/app/blobdata"
+      AI_API_BASE: "http://ai:8000"
+    ports:
+      - "50051:50051"
+      - "25213:25213"
+    volumes:
+      - ./blobdata:/app/blobdata
+
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile    
+    container_name: ai-worker
+    ports:
+      - "8000:8000"
+    gpus: all           
+    environment:
+      OLLAMA_HOST: "http://host.docker.internal:11434"
+      CTRANSLATE2_VERBOSE: "1"
+    volumes:
+      - whisper-cache:/root/.cache
+      - ./ai:/app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  app-test:
+    image: golang:1.25-bookworm
+    working_dir: /src
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai:
+        condition: service_started
+    environment:
+      BLOB_BIND_ADDR: "0.0.0.0:0"
+      GRPC_ADDR: "0.0.0.0:50051"
+      BLOB_PUBLIC_BASE_URL: "http://10.0.2.2:0"
+      MYSQL_DSN: "root:12345@tcp(mysql:3306)/auth?parseTime=true&charset=utf8mb4&loc=UTC"
+      AUTH_JWT_SECRET: "dev-secret"
+      AWS_ACCESS_KEY_ID: "xxxxxx"
+      AWS_SECRET_ACCESS_KEY: "xxxxxx"
+      AWS_REGION: "ap-southeast-1"
+      BLOB_STORAGE_PATH: "../../.data/blob"
+      AI_API_BASE: "http://ai:8000"
+    volumes:
+      - ./backend:/src  
+volumes:
+  mysql-data: {}
+  whisper-cache: {}

@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/backend/gen/auth/v1;authv1";
+option java_multiple_files = true;
+option java_package = "com.backend.auth.v1";
+option csharp_namespace = "backend.Auth.V1";
+
+import "google/protobuf/timestamp.proto";
+
+service AuthenticationService {
+
+  rpc SignUp(SignUpRequest) returns (AuthResponse);
+
+  rpc SignIn(SignInRequest) returns (AuthResponse);
+
+  rpc GoogleSignIn(GoogleSignInRequest) returns (AuthResponse);
+
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse);
+
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  AuthProvider provider = 3;
+  bool email_verified = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  Role role = 7;
+}
+
+
+enum AuthProvider {
+  AUTH_PROVIDER_UNSPECIFIED = 0;
+  AUTH_PROVIDER_CUSTOM = 1;
+  AUTH_PROVIDER_GOOGLE = 2;
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_ADMIN = 2;
+}
+
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp access_token_expires_at = 3;
+  google.protobuf.Timestamp refresh_token_expires_at = 4;
+  string token_type = 5;  
+}
+
+message AuthResponse {
+  User user = 1;
+  TokenPair tokens = 2;
+}
+
+message SignUpRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message SignInRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message GoogleSignInRequest {
+  string id_token = 1;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message RequestPasswordResetRequest {
+  string email = 1;
+}
+
+message ResetPasswordRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+
+message RevokeTokenRequest {
+  string refresh_token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  User user = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message RequestPasswordResetResponse {
+  bool ok = 1;
+}
+
+message ResetPasswordResponse {
+  bool ok = 1;
+}
+
+message RevokeTokenResponse {
+  bool ok = 1;
+}

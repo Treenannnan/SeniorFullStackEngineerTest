@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package shop.v1;
+
+option go_package = "github.com/backend/gen/shop/v1;shopv1";
+option java_multiple_files = true;
+option java_package = "com.backend.shop.v1";
+option csharp_namespace = "backend.Shop.V1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+
+service ShopService {
+
+  rpc UploadAudiobook(stream UploadChunk) returns (UploadAudiobookResponse);
+  rpc CreateUploadURL(CreateUploadUrlRequest) returns (CreateUploadUrlResponse);
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+  rpc GetUploadURL(GetUploadURLRequest) returns (CreateUploadUrlResponse);
+
+  rpc ListAudiobooks(ListAudiobooksRequest) returns (ListAudiobooksResponse);
+  rpc GetAudiobook(GetAudiobookRequest) returns (GetAudiobookResponse);
+
+  rpc ViewCart(google.protobuf.Empty) returns (ViewCartResponse);
+  rpc AddToCart(AddToCartRequest) returns (ViewCartResponse);
+  rpc RemoveFromCart(RemoveFromCartRequest) returns (ViewCartResponse);
+  rpc Checkout(google.protobuf.Empty) returns (CheckoutResponse);
+
+  rpc ListPurchases(google.protobuf.Empty) returns (ListPurchasesResponse);
+  rpc GetDownloadURL(GetDownloadURLRequest) returns (GetDownloadURLResponse);
+  rpc GetTranscript(GetTranscriptRequest) returns (GetTranscriptResponse);
+  rpc GetDescription(GetDescriptionRequest) returns (GetDescriptionResponse);
+  rpc GetAudiobookStatus(GetAudiobookStatusRequest) returns (GetAudiobookStatusResponse);
+}
+
+enum MediaStatus {
+  MEDIA_STATUS_UNSPECIFIED = 0;
+  MEDIA_PROCESSING_AUDIO = 1;
+  MEDIA_PROCESSING_TRANSCRIPT = 2;
+  MEDIA_PROCESSING_SUMMARY = 3;
+  MEDIA_READY = 4;
+  MEDIA_HIDE = 5;
+  MEDIA_DETETED = 6;
+}
+
+enum AIProvider {
+  AIProvider_NONE = 0;
+  AIProvider_AWS = 1;
+  AIProvider_LOCAL = 2;
+}
+
+message Audiobook {
+  string id = 1;
+  string title = 2;
+  string author = 3;
+  int64 duration_seconds = 4; 
+  int64 price_cents = 5;
+  string cover_url = 6;       
+  MediaStatus status = 7;
+  repeated string categories = 8; 
+  string ai_description = 9;      
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  string content_type = 12; 
+}
+
+message UploadHeader {
+  string title = 1;
+  string author = 2;
+  int64 price_cents = 3;
+  string filename = 4;
+  string content_type = 5;
+}
+
+message UploadChunk {
+  oneof payload {
+    UploadHeader header = 1;
+    bytes data = 2;
+  }
+}
+
+message UploadAudiobookResponse {
+  Audiobook book = 1;
+}
+
+message CreateUploadUrlRequest {
+  string title = 1;
+  string author = 2;
+  int64 price_cents = 3;
+  string filename = 4;
+  string content_type = 5;
+}
+
+message CreateUploadUrlResponse {
+  string audiobook_id = 1;
+  string upload_url = 2; 
+  int64 max_bytes = 3;
+}
+
+message CompleteUploadRequest {
+  string audiobook_id = 1;
+  AIProvider ai_provider = 2;
+  MediaStatus force_status = 3;
+
+}
+message CompleteUploadResponse {
+  Audiobook book = 1;
+}
+
+message GetUploadURLRequest {
+  string audiobook_id = 1;
+}
+
+message ListAudiobooksRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string query = 3;     
+  string category = 4;
+}
+
+message ListAudiobooksResponse {
+  repeated Audiobook items = 1;
+  string next_page_token = 2;
+}
+
+message GetAudiobookRequest {
+  string id = 1;
+}
+message GetAudiobookResponse {
+  Audiobook book = 1;
+  string transcript_preview = 2;
+  string description = 3;
+}
+
+message CartItem {
+  Audiobook book = 1;
+  int64 line_subtotal_cents = 2;
+}
+
+message ViewCartResponse {
+  repeated CartItem items = 1;
+  int64 subtotal_cents = 2;
+}
+
+message AddToCartRequest {
+  string audiobook_id = 1;
+}
+message RemoveFromCartRequest {
+  string audiobook_id = 1;
+}
+
+message CheckoutResponse {
+  string order_id = 1;
+  int64 total_cents = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+
+message ListPurchasesResponse {
+  message PurchasedItem {
+    string order_id = 1;
+    Audiobook book = 2;
+    int64 price_cents = 3;
+    google.protobuf.Timestamp purchased_at = 4;
+  }
+  repeated PurchasedItem items = 1;
+}
+
+message GetDownloadURLRequest {
+  string audiobook_id = 1;
+}
+message GetDownloadURLResponse {
+  string download_url = 1;
+}
+
+message GetTranscriptRequest {
+  string audiobook_id = 1;
+}
+message GetTranscriptResponse {
+  string transcript = 1;
+}
+
+message GetDescriptionRequest {
+  string audiobook_id = 1;
+}
+message GetDescriptionResponse {
+  string description = 1;
+}
+
+message GetAudiobookStatusRequest {
+  string audiobook_id = 1;
+}
+message GetAudiobookStatusResponse {
+  MediaStatus status = 1;
+}
+
