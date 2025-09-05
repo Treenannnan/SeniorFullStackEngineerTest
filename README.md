@@ -1,5 +1,5 @@
 # SeniorFullStackEngineerTest
-project for nexusai senior fullstack engineer
+project for Nexus AI senior fullstack engineer
 <br>
 <br>
 https://nexusai-asia.notion.site/Senior-Full-Stack-Engineer-Case-Study-2491ce757f2f80ff8f7bfe48ffcbbfb8
