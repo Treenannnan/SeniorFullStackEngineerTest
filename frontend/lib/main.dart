@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'pages/index.dart';
 
-const String kServerClientId = '';
+const String kServerClientId = '225011963709-jqhe548mvechr2d0jkl6ggv2t20pu539.apps.googleusercontent.com';
 
 const List<String> kGoogleScopes = <String>[
   'openid',

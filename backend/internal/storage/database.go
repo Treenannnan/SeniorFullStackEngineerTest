@@ -21,7 +21,6 @@ var (
 )
 
 type Store interface {
-	// ===== Users (เดิม) =====
 	CreateUser(ctx context.Context, u *schemav1.UserRecord) error
 	GetUserByEmail(ctx context.Context, email string) (*schemav1.UserRecord, error)
 	GetUserByID(ctx context.Context, id string) (*schemav1.UserRecord, error)
@@ -29,24 +28,16 @@ type Store interface {
 	SetEmailVerified(ctx context.Context, userID string, verified bool) error
 	SetUserRole(ctx context.Context, userID string, role schemav1.Role) error
 
-	// ===== Refresh Tokens (เดิม) =====
 	CreateRefreshToken(ctx context.Context, token string, userID string, expiresAt time.Time) error
 	GetRefreshTokenOwner(ctx context.Context, token string) (userID string, ok bool, err error)
 	DeleteRefreshToken(ctx context.Context, token string) error
 	DeleteAllRefreshTokensForUser(ctx context.Context, userID string) error
 
-	// ===== Password Reset Tokens (เดิม) =====
 	CreateResetToken(ctx context.Context, token string, userID string, expiresAt time.Time) error
 	ConsumeResetToken(ctx context.Context, token string) (userID string, ok bool, err error)
 
-	// ===== Cleanup (เดิม) =====
 	PruneExpired(ctx context.Context) error
 
-	// =====================================================================
-	// ============================== SHOP ==================================
-	// =====================================================================
-
-	// Audiobooks
 	CreateAudiobookProcessing(ctx context.Context, rec *schemav1.AudiobookRecord) error
 	UpdateAudiobookAI(ctx context.Context, audiobookID string, aiDescription, transcript, url string, status string, categories []string) error
 	GetAudiobookByID(ctx context.Context, id string) (*schemav1.AudiobookRecord, []string, error)
@@ -57,7 +48,7 @@ type Store interface {
 	SetAudiobookDownloadURL(ctx context.Context, id string, url string) error
 	SetAudiobookTranscript(ctx context.Context, id string, transcript string) error
 	GetAllCategoryLabels(ctx context.Context) ([]string, error)
-	// Cart
+
 	ViewCart(ctx context.Context, userID string) (items []struct {
 		Book schemav1.AudiobookRecord
 		Line int64
@@ -66,7 +57,6 @@ type Store interface {
 	RemoveFromCart(ctx context.Context, userID, audiobookID string) error
 	ClearCart(ctx context.Context, userID string) error
 
-	// Checkout / Purchases
 	Checkout(ctx context.Context, userID string) (orderUID string, totalCents int64, err error)
 	ListPurchases(ctx context.Context, userID string, limit int) ([]struct {
 		Book       schemav1.AudiobookRecord
@@ -81,8 +71,6 @@ type SQLStore struct {
 }
 
 func NewSQLStore(db *sql.DB) *SQLStore { return &SQLStore{DB: db} }
-
-// =========================== Users (เดิม) ===========================
 
 func (s *SQLStore) CreateUser(ctx context.Context, u *schemav1.UserRecord) error {
 	const q = `
@@ -186,8 +174,6 @@ func (s *SQLStore) SetUserRole(ctx context.Context, userID string, role schemav1
 	return nil
 }
 
-// ======================= Refresh Tokens (เดิม) ======================
-
 func (s *SQLStore) CreateRefreshToken(ctx context.Context, token, userID string, expiresAt time.Time) error {
 	const q = `
 INSERT INTO refresh_tokens (token, user_id, expires_at)
@@ -220,8 +206,6 @@ func (s *SQLStore) DeleteAllRefreshTokensForUser(ctx context.Context, userID str
 	return err
 }
 
-// =================== Password Reset Tokens (เดิม) ===================
-
 func (s *SQLStore) CreateResetToken(ctx context.Context, token, userID string, expiresAt time.Time) error {
 	const q = `
 INSERT INTO reset_tokens (token, user_id, expires_at)
@@ -231,7 +215,6 @@ ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), expires_at = VALUES(expires_a
 	return err
 }
 
-// Atomic consume: SELECT ... FOR UPDATE แล้วค่อย DELETE ภายใน txn
 func (s *SQLStore) ConsumeResetToken(ctx context.Context, token string) (string, bool, error) {
 	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
@@ -621,8 +604,6 @@ func (s *SQLStore) GetAudioPathByID(ctx context.Context, id string) (string, err
 	return key, err
 }
 
-// ---------- Cart ----------
-
 func (s *SQLStore) ViewCart(ctx context.Context, userID string) (items []struct {
 	Book schemav1.AudiobookRecord
 	Line int64
@@ -896,9 +877,7 @@ func statusOrDefault(s string) string {
 	}
 }
 
-// newPublicID: ให้ layer อื่นสร้าง id ก็ได้
 func newPublicID() string {
-	// แบบง่าย: epoch-nano (ควรเปลี่ยนเป็น ksuid/uuid ใน production)
 	return time.Now().UTC().Format("20060102T150405") + "-" + strings.TrimPrefix(strings.ReplaceAll(time.Now().UTC().Format("15:04:05.000000"), ":", ""), "15")
 }
 
@@ -908,7 +887,6 @@ func (s *SQLStore) getOrCreateCategoryID(ctx context.Context, label string) (int
 		return 0, fmt.Errorf("empty category label")
 	}
 
-	// ลองหา id ก่อน
 	var id int64
 	err := s.DB.QueryRowContext(ctx,
 		`SELECT id FROM audiobook_category_types WHERE label=?`, label,
@@ -920,7 +898,6 @@ func (s *SQLStore) getOrCreateCategoryID(ctx context.Context, label string) (int
 		return 0, err
 	}
 
-	// ไม่เจอ → สร้างใหม่ (unique key บน label)
 	res, err := s.DB.ExecContext(ctx,
 		`INSERT INTO audiobook_category_types (label) VALUES (?)
          ON DUPLICATE KEY UPDATE updated_at=VALUES(updated_at)`, label)
@@ -931,7 +908,6 @@ func (s *SQLStore) getOrCreateCategoryID(ctx context.Context, label string) (int
 	if id != 0 {
 		return id, nil
 	}
-	// กรณี duplicate race: ดึงอีกครั้ง
 	if err := s.DB.QueryRowContext(ctx,
 		`SELECT id FROM audiobook_category_types WHERE label=?`, label,
 	).Scan(&id); err != nil {
